@@ -1,5 +1,8 @@
 (ns rest.handler
   (:import com.mchange.v2.c3p0.ComboPooledDataSource)
+  (:use compojure.core)
+  (:use cheshire.core)
+  (:use ring.util.response)
   (:require [compojure.handler :as handler]
             [compojure.route :as route]
             [ring.middleware.json :as middleware]
