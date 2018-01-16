@@ -6,7 +6,7 @@
   (:require [compojure.handler :as handler]
             [compojure.route :as route]
             [ring.middleware.json :as middleware]
-            [clojure.java.jdbc :as sql]))
+            '[clojure.java.jdbc :as sql]))
 
 (def db-spec 
   {:classname "com.mysql.jdbc.Driver"
