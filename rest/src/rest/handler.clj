@@ -31,19 +31,11 @@
 
 (defn db-connection [] @pooled-db)
 
-(defn create-users []
-   (sql/create-table
-    :users
-    [:id :integer "PRIMARY KEY" "AUTO_INCREMENT"]
-    [:fname "varchar(25)"]
-    [:lname "varchar(25)"]))
-
-(defn drop-users []
-   (sql/drop-table :users))
-
 (sql/with-connection (db-connection)
-  (drop-users)
-  (create-users))
+  (sql/drop-table :users)
+  (sql/create-table :users [:id :integer "PRIMARY KEY" "AUTO_INCREMENT"]
+                           [:fname "varchar(25)"]
+                           [:lname "varchar(25)"]))
 
 (defn uuid [] (str (java.util.UUID/randomUUID)))
 
