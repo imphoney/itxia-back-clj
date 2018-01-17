@@ -8,9 +8,10 @@
                  [org.clojure/java.jdbc "0.7.5"]
                  [mysql/mysql-connector-java "5.1.45"]
                  [com.mchange/c3p0 "0.9.5.2"]
-                 [cheshire "5.8.0"]]
+                 [cheshire "5.8.0"]
+                 [liberator "0.15.1"]]
   :plugins [[lein-ring "0.9.7"]]
-  :ring {:handler rest.handler/app}
+  :ring {:handler rest.handler/handler}
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
                         [ring/ring-mock "0.3.0"]]}})
