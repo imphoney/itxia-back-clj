@@ -11,7 +11,7 @@
 (def db-spec 
   {:classname "com.mysql.jdbc.Driver"
    :subprotocol "mysql"
-   :subname "//localhost:3306/db"
+   :subname "//0.0.0.0:3306/db"
    :user "itxia"
    :password "itxia"})
 
