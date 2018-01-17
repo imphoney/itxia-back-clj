@@ -32,9 +32,16 @@
 
 (defn db-connection [] @pooled-db)
 
-(sql/with-db-connection (db-connection)
-  (sql/create-table-ddl :users [:id "varchar(256)" "primary key"]
-                               [:name "varchar(1024)"]))
+(def fruit-table-ddl
+  (jdbc/create-table-ddl :fruit
+                         [[:name "varchar(32)"]
+                          [:appearance "varchar(32)"]
+                          [:cost :int]
+                          [:grade :real]]))
+
+(jdbc/db-do-commands (db-connection)
+                     [fruit-table-ddl
+                      "CREATE INDEX name_ix ON fruit ( name );"])
 
 (defroutes app-routes
   (GET "/" [] "Hello World")
