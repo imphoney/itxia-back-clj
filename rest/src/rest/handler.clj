@@ -32,6 +32,8 @@
 
 (defn db-connection [] @pooled-db)
 
+(db-connection)
+
 (defroutes app-routes
   (GET "/" [] "Hello World")
   (route/not-found "Not Found"))
