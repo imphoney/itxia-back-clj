@@ -32,7 +32,7 @@
 
 (defn db-connection [] @pooled-db)
 
-(sql/with-db-connection db-connection
+(sql/with-db-connection (db-connection)
   (sql/create-table-ddl :users [:id "varchar(256)" "primary key"]
                                [:name "varchar(1024)"]))
 
