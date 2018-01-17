@@ -5,9 +5,9 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [compojure "1.5.1"]
                  [ring/ring-json "0.4.0"]
-                 [org.clojure/java.jdbc "0.2.3"]
+                 [org.clojure/java.jdbc "0.7.5"]
                  [mysql/mysql-connector-java "5.1.45"]
-                 [c3p0/c3p0 "0.9.1.2"]
+                 [com.mchange/c3p0 "0.9.5.2"]
                  [cheshire "5.8.0"]]
   :plugins [[lein-ring "0.9.7"]]
   :ring {:handler rest.handler/app}
