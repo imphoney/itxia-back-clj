@@ -39,9 +39,15 @@
                           [:cost :int]
                           [:grade :real]]))
 
-(jdbc/db-do-commands (db-connection)
-                     [fruit-table-ddl
-                      "CREATE INDEX name_ix ON fruit ( name );"])
+(def drop-fruit-table-ddl (jdbc/drop-table-ddl :fruit))
+
+(jdbc/with-db-connection [db-con (db-connection)] 
+  (let [
+        tables (jdbc/query db-con ["Show tables"] )]
+    (cond
+      (empty? tables) (jdbc/db-do-commands db-con
+                                           [fruit-table-ddl
+				           "CREATE INDEX name_ix ON fruit ( name );"]))))
 
 (defroutes app-routes
   (GET "/" [] "Hello World")
