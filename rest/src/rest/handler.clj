@@ -34,24 +34,31 @@
 (defn db-connection [] @pooled-db)
 
 (def fruit-table-ddl
-  (jdbc/create-table-ddl :fruit
+  (jdbc/create-table-ddl :fruits
                          [[:name "varchar(32)"]
                           [:appearance "varchar(32)"]
                           [:cost :int]
                           [:grade :real]]))
 
-(def drop-fruit-table-ddl (jdbc/drop-table-ddl :fruit))
+(def drop-fruit-table-ddl (jdbc/drop-table-ddl :fruits))
 
 (jdbc/with-db-connection [db-con (db-connection)] 
   (let [
-        tables (jdbc/query db-con ["select table_name from information_schema.tables where table_name='fruit'"] )]
+        tables (jdbc/query db-con ["select table_name from information_schema.tables where table_name='fruits'"] (if-not))]
     (cond
       (empty? tables) (jdbc/db-do-commands db-con
                                            [fruit-table-ddl
-				           "CREATE INDEX name_ix ON fruit ( name );"]))))
+				           "CREATE INDEX name_ix ON fruits ( name );"]))))
 
+
+(defresource fruits [id]
+  :available-media-types ["text/plain" "application/json"]
+  :exists? (jdbc/db-query-with-resultset (db-connection) ["select * from fruits where name = ?" #(if-not (empty? %) {::res %})])
+  :handle-ok ::res
+  )
+  
 (defroutes app
-  (ANY "/" [] (resource)))
+  (ANY "/fruits/:id" [id] (fruits id)))
 
 (def handler
   (-> app
