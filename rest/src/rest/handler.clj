@@ -34,6 +34,7 @@
 
 (defn db-connection [] @pooled-db)
 
+
 (def fruit-table-ddl
   (jdbc/create-table-ddl :fruits
                          [[:name "varchar(32)"]
@@ -56,19 +57,25 @@
 (defresource fruit-item [id]
   :allowed-methods [:get :put :delete]
   :available-media-types ["application/json"]
-  :exists? (fn [_] (let [res (jdbc/query (db-connection) ["select * from fruits where name = ?" id])] (if-not (empty? res) {::res (generate-string res)})))
+  :last-modified (* 10000 (long  (/ (System/currentTimeMillis) 10000)))
+  :exists? (fn [_] (let [res (jdbc/query (db-connection) ["select * from fruits where name = ?" id])] (if-not (empty? res) {::res (generate-string (first res))})))
   :handle-ok ::res
   :can-put-to-missing? false
   :delete! (fn [_] (jdbc/delete! (db-connection) :fruits ["name = ?" id]))
   )
 
 
-(defresource fruit-collection
-  :allowed-methods [:get :put]
+(defresource fruit-collection 
+  :allowed-methods [:get :post]
   :available-media-types ["application/json"]
+  :post! (fn [ctx] (jdbc/with-db-connection [db-con (db-connection)]
+                      (let [fruit (slurp (get-in ctx [:request :body]))]
+                        (jdbc/insert! db-con :fruits (parse-string fruit true)))))
   )
 (defroutes app
-  (ANY "/fruits/:id" [id] (fruit-item id)))
+  (ANY "/fruits/:id" [id] (fruit-item id))
+  (ANY "/fruits" [] fruit-collection)
+  )
 
 (def handler
   (-> app
