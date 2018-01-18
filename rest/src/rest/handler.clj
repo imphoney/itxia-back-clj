@@ -10,6 +10,7 @@
             [liberator.core :refer [resource defresource]]
             [compojure.core :refer [defroutes ANY]]))
 
+;; configure the mysql scheme
 (def db-spec
   {:classname "com.mysql.jdbc.Driver"
    :subprotocol "mysql"
@@ -17,6 +18,7 @@
    :user "itxia"
    :password "itxia"})
 
+;; use c3p0 transaction pool to connect to the db
 (defn pool
   [spec]
   (let [cpds (doto (ComboPooledDataSource.)
@@ -30,6 +32,7 @@
                (.setMaxIdleTime (* 3 60 60)))]
     {:datasource cpds}))
 
+;; a delay func ensures the pool is singleten
 (def pooled-db (delay (pool db-spec)))
 
 (defn db-connection [] @pooled-db)
@@ -42,16 +45,28 @@
                           [:cost :int]
                           [:grade :real]]))
 
+(def forms-table-ddl
+  (jdbc/create-table-ddl :forms
+                         [[:phone "varchar(32)"]
+                          [:name "varchar(32)"]
+                          [:mail "varchar(32)"]
+                          [:school "varchar(32)"]
+                          [:model "varchar(32)"]
+                          [:os "varchar(32)"]
+                          [:discription "varchar(255)"]
+                          [:timestamp "DATETIME"]]))
+
+
 (def drop-fruit-table-ddl (jdbc/drop-table-ddl :fruits))
 
 (jdbc/with-db-connection [db-con (db-connection)] 
-  (let [tables (jdbc/query db-con ["select table_name from information_schema.tables where table_name='fruits'"])]
+  (let [tables (jdbc/query db-con ["select table_name from information_schema.tables where table_name='forms'"])]
     (cond
       (empty? tables) (jdbc/db-do-commands db-con
-                                           [fruit-table-ddl "CREATE INDEX name_ix ON fruits ( name );"])
-      :else (let [res (jdbc/query db-con ["select * from fruits"])] 
-                  (if (empty? res) (jdbc/insert! db-con :fruits {:name "Pear" :appearance "green" :cost 99 :grade 93})))
-    )))
+                                           [forms-table-ddl])
+      :else (let [res (jdbc/query db-con ["select * from forms"])] 
+                  (if (empty? res) (jdbc/insert! db-con :forms {:name "Pear" :appearance "green" :cost 99 :grade 93})))))
+  )
 
 
 (defresource fruit-item [id]
@@ -68,10 +83,15 @@
 (defresource fruit-collection 
   :allowed-methods [:get :post]
   :available-media-types ["application/json"]
+  :exists? (fn [_] (let [res (jdbc/query (db-connection) ["select * from fruits"])] (if-not (empty? res) {::res (generate-string res)})))
   :post! (fn [ctx] (jdbc/with-db-connection [db-con (db-connection)]
-                      (let [fruit (slurp (get-in ctx [:request :body]))]
-                        (jdbc/insert! db-con :fruits (parse-string fruit true)))))
+                      (let [fruit (parse-string (slurp (get-in ctx [:request :body])) true)]
+                        (jdbc/insert! db-con :fruits fruit)
+                        {::name (:name fruit)})))
+  :location ::name
+  :handle-ok ::res
   )
+
 (defroutes app
   (ANY "/fruits/:id" [id] (fruit-item id))
   (ANY "/fruits" [] fruit-collection)
@@ -80,4 +100,5 @@
 (def handler
   (-> app
       wrap-params
-      (wrap-trace :header :ui)))
+;;      (wrap-trace :header :ui)
+      ))
