@@ -38,63 +38,64 @@
 (defn db-connection [] @pooled-db)
 
 
-(def fruit-table-ddl
-  (jdbc/create-table-ddl :fruits
-                         [[:name "varchar(32)"]
-                          [:appearance "varchar(32)"]
-                          [:cost :int]
-                          [:grade :real]]))
-
 (def forms-table-ddl
   (jdbc/create-table-ddl :forms
-                         [[:phone "varchar(32)"]
-                          [:name "varchar(32)"]
-                          [:mail "varchar(32)"]
-                          [:school "varchar(32)"]
-                          [:model "varchar(32)"]
-                          [:os "varchar(32)"]
-                          [:discription "varchar(255)"]
-                          [:timestamp "DATETIME"]]))
+                         [[:id :int "PRIMARY KEY" "NOT NULL" "AUTO_INCREMENT"]
+                          [:phone "varchar(32)" "NOT NULL"]
+                          [:name "varchar(32)" "NOT NULL"]
+                          [:mail "varchar(32)" "NOT NULL"]
+                          [:school "varchar(32)" "NOT NULL"]
+                          [:model "varchar(32)" "NOT NULL"]
+                          [:os "varchar(32)" "NOT NULL"]
+                          [:discription "varchar(255)" "NOT NULL"]
+                          [:created_at "TIMESTAMP" "NOT NULL" "DEFAULT CURRENT_TIMESTAMP" "ON UPDATE CURRENT_TIMESTAMP"]]))
 
+(def timestamp-as-seconds #(* 1000 (long  (/ (System/currentTimeMillis) 1000))))
 
-(def drop-fruit-table-ddl (jdbc/drop-table-ddl :fruits))
+(def example-user
+  {:phone "15850551102"
+   :name "chenhao" 
+   :mail "imphoney@163.com" 
+   :school "gulou" 
+   :model "dell" 
+   :os "win10/x86" 
+   :discription "I got sth wrong"})
 
 (jdbc/with-db-connection [db-con (db-connection)] 
   (let [tables (jdbc/query db-con ["select table_name from information_schema.tables where table_name='forms'"])]
     (cond
-      (empty? tables) (jdbc/db-do-commands db-con
-                                           [forms-table-ddl])
+      (empty? tables) (do (jdbc/db-do-commands db-con [forms-table-ddl]) (jdbc/insert! db-con :forms example-user))
       :else (let [res (jdbc/query db-con ["select * from forms"])] 
-                  (if (empty? res) (jdbc/insert! db-con :forms {:name "Pear" :appearance "green" :cost 99 :grade 93})))))
+                  (if (empty? res) (jdbc/insert! db-con :forms example-user)))))
   )
 
 
-(defresource fruit-item [id]
+(defresource form-item [id]
   :allowed-methods [:get :put :delete]
   :available-media-types ["application/json"]
-  :last-modified (* 10000 (long  (/ (System/currentTimeMillis) 10000)))
-  :exists? (fn [_] (let [res (jdbc/query (db-connection) ["select * from fruits where name = ?" id])] (if-not (empty? res) {::res (generate-string (first res))})))
-  :handle-ok ::res
+  :last-modified #(:created_at (::res %))
+  :exists? (fn [_] (let [res (jdbc/query (db-connection) ["select * from forms where id = ?" id])] (if-not (empty? res) {::res (first res)})))
+  :handle-ok #(generate-string (::res %))
   :can-put-to-missing? false
-  :delete! (fn [_] (jdbc/delete! (db-connection) :fruits ["name = ?" id]))
+  :delete! (fn [_] (jdbc/delete! (db-connection) :forms ["name = ?" id]))
   )
 
 
-(defresource fruit-collection 
+(defresource form-collection 
   :allowed-methods [:get :post]
   :available-media-types ["application/json"]
-  :exists? (fn [_] (let [res (jdbc/query (db-connection) ["select * from fruits"])] (if-not (empty? res) {::res (generate-string res)})))
-  :post! (fn [ctx] (jdbc/with-db-connection [db-con (db-connection)]
-                      (let [fruit (parse-string (slurp (get-in ctx [:request :body])) true)]
-                        (jdbc/insert! db-con :fruits fruit)
-                        {::name (:name fruit)})))
+  :exists? (fn [_] (let [res (jdbc/query (db-connection) ["select * from forms"])] (if-not (empty? res) {::res (generate-string res)})))
+  :post! (fn [ctx] (jdbc/with-db-transaction [db-con (db-connection)]
+                      (let [form (parse-string (slurp (get-in ctx [:request :body])) true)]
+                        (jdbc/insert! db-con :forms form)
+                        {::name (:name form)})))
   :location ::name
   :handle-ok ::res
   )
 
 (defroutes app
-  (ANY "/fruits/:id" [id] (fruit-item id))
-  (ANY "/fruits" [] fruit-collection)
+  (ANY "/forms/:id" [id] (form-item id))
+  (ANY "/forms" [] form-collection)
   )
 
 (def handler
