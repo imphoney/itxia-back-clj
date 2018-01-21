@@ -11,7 +11,9 @@
                  [cheshire "5.8.0"]
                  [liberator "0.15.1"]]
   :plugins [[lein-ring "0.9.7"]]
-  :ring {:handler rest.handler/handler}
+  :ring {:handler rest.handler/handler
+         :init rest.db/init
+         :destroy rest.db/destroy}
   :profiles
-  {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
+  {:dev {:dependencies [[ring/ring-devel "1.6.3"]
                         [ring/ring-mock "0.3.0"]]}})
