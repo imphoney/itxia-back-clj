@@ -1,4 +1,6 @@
-# itxia-back-clj
+# itxia-back-clj  
+
+It is a restful api implemented by clojure with ring and liberator porject.
 
 ### To play with it
 `cd rest`  
